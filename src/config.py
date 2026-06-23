@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     database_url: str
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
-    history_limit: int = 5
+    history_limit: int = 3
     low_confidence_threshold: float = 0.7
     disruptive_actions: set[str] = {"rollback", "scale_up"}
 
