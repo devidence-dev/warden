@@ -2,6 +2,7 @@ import json
 import logging
 from dataclasses import dataclass
 
+from mocks import notifications
 from src.actions.registry import ActionRegistry
 from src.domain.decision import RemediationDecision
 from src.domain.event import DegradationEvent
@@ -60,6 +61,7 @@ class EventIngestionService:
 
         approval_record = self._approval_repo.create(decision_record.id)
         self._event_repo.mark_status(event_record.id, "pending_approval")
+        notifications.notify_oncall(payload.project_id, event_record.id, decision.action.value, decision.reasoning)
         logger.info(
             json.dumps(
                 {

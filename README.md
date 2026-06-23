@@ -92,6 +92,9 @@ mocks/              orchestrator.py y notifications.py — ahora sí invocados p
   agregar una restricción nueva no toca las demás.
 - **Strategy** (`actions/`): cada acción de remediación es un `ActionHandler`
   intercambiable; `ActionRegistry` los despacha por `ActionType`. Los handlers invocan `mocks/orchestrator.py` y `mocks/notifications.py`.
+- Cuando `safe_to_auto` es `false`, además de crear el approval request,
+  `EventIngestionService` notifica al on-call vía `mocks/notifications.notify_oncall`
+  (no solo cuando la acción elegida por el LLM es `notify_human`).
 - **Composition root manual** (`api/deps.py`): un solo lugar ensambla repos,
   provider, policy, registry y servicios concretos con sus dependencias. No se
   introduce un framework de DI adicional — FastAPI `Depends` ya resuelve el grafo.
@@ -104,7 +107,7 @@ mocks/              orchestrator.py y notifications.py — ahora sí invocados p
 - El campo `context` es opcional y extensible.
 - El único entorno considerado como producción es `prod`.
 - El límite de historial es configurable mediante la variable de entorno
-  `HISTORY_LIMIT` (valor predeterminado: `5`).
+  `HISTORY_LIMIT` (valor predeterminado: `3`).
 - El feedback humano en `approve`/`reject` es texto libre opcional. El `HistoryEntry`
   que se envía al LLM incluye tanto el resultado de la aprobación (`approved` /
   `rejected`) como ese texto libre, para que decisiones futuras sobre el mismo

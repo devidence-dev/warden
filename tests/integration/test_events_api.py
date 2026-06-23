@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 from src.api.deps import get_reasoning_provider
 from src.main import app
@@ -42,6 +43,28 @@ def test_ingest_event_forces_pending_approval_for_disruptive_prod_action(client)
     assert "approval_id" in body
 
 
+def test_ingest_event_pending_approval_notifies_oncall(client):
+    _override_provider(
+        client,
+        json.dumps(
+            {"action": "rollback", "confidence": 0.8, "reasoning": "Recent deploy caused latency spike.", "safe_to_auto": True}
+        ),
+    )
+
+    with patch("src.services.event_service.notifications.notify_oncall") as mock_notify:
+        mock_notify.return_value = {"status": "ok", "message": "On-call notified"}
+        response = client.post("/events/", json=VALID_PAYLOAD)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "pending_approval"
+    mock_notify.assert_called_once_with(
+        "payments-api",
+        response.json()["event_id"],
+        "rollback",
+        "Recent deploy caused latency spike.",
+    )
+
+
 def test_ingest_event_invalid_severity(client):
     payload = {**VALID_PAYLOAD, "severity": "extreme"}
     response = client.post("/events/", json=payload)
@@ -66,7 +89,9 @@ def test_ingest_event_safe_to_auto_true_is_processed_immediately(client):
     )
     payload = {**VALID_PAYLOAD, "environment_id": "dev", "severity": "low"}
 
-    response = client.post("/events/", json=payload)
+    with patch("src.services.event_service.notifications.notify_oncall") as mock_notify:
+        response = client.post("/events/", json=payload)
+    mock_notify.assert_not_called()
 
     assert response.status_code == 200
     body = response.json()
