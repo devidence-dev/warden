@@ -9,12 +9,12 @@ from src.services.exceptions import ApprovalAlreadyResolvedError, ApprovalNotFou
 router = APIRouter(prefix="/approvals", tags=["approvals"])
 
 
-@router.get("/", response_model=list[ApprovalResponse])
+@router.get("/", response_model=list[ApprovalResponse], summary="Listar approval requests pendientes")
 async def list_approvals(repo: ApprovalRepository = Depends(get_approval_repository)):
     return repo.list_pending()
 
 
-@router.post("/{approval_id}/approve", response_model=ApprovalActionResponse)
+@router.post("/{approval_id}/approve", response_model=ApprovalActionResponse, summary="Aprobar y ejecutar una acción pendiente")
 async def approve(
     approval_id: str,
     body: ApprovalActionRequest = ApprovalActionRequest(),
@@ -29,7 +29,7 @@ async def approve(
     return ApprovalActionResponse(approval_id=result.approval_id, status=result.status, result=result.result)
 
 
-@router.post("/{approval_id}/reject", response_model=ApprovalActionResponse)
+@router.post("/{approval_id}/reject", response_model=ApprovalActionResponse, summary="Rechazar una acción pendiente")
 async def reject(
     approval_id: str,
     body: ApprovalActionRequest = ApprovalActionRequest(),
