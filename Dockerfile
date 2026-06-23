@@ -9,4 +9,4 @@ RUN uv sync --frozen --no-install-project --no-dev
 
 COPY . .
 
-CMD ["uv", "run", "granian", "--interface", "asgi", "--host", "0.0.0.0", "--port", "9000", "--reload", "src.main:app"]
+CMD ["sh", "-c", "uv run granian --interface asgi --host 0.0.0.0 --port ${PORT:-9000} --reload src.main:app"]

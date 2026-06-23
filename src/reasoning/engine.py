@@ -42,7 +42,7 @@ class ReasoningEngine:
             logger.info(json.dumps({"event": "llm_response", "raw": raw}))
             decision = self._response_parser(raw)
         except Exception as exc:
-            logger.error(f"Error during reasoning: {exc}")
+            logger.error(json.dumps({"event": "reasoning_error", "event_id": event_id, "error": str(exc)}))
             decision = RemediationDecision(
                 action=ActionType.NOTIFY_HUMAN,
                 confidence=1.0,
