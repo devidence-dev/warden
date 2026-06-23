@@ -44,7 +44,7 @@ if __name__ == "__main__":
     settings = get_settings()
     Granian(
         "src.main:app",
-        address="0.0.0.0",
+        address="0.0.0.0",  # nosec B104
         port=settings.port,
         interface=Interfaces.ASGI,
         reload=True,
