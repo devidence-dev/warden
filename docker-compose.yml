@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: warden
-      POSTGRES_PASSWORD: warden
-      POSTGRES_DB: warden
+      POSTGRES_USER: ${POSTGRES_USER:-warden}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-warden}
+      POSTGRES_DB: ${POSTGRES_DB:-warden}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U warden"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-warden}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,9 +20,9 @@ services:
     ports:
       - "9000:9000"
     environment:
-      DATABASE_URL: postgresql+psycopg://warden:warden@db:5432/warden
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      HISTORY_LIMIT: 5
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-warden}:${POSTGRES_PASSWORD:-warden}@db:5432/${POSTGRES_DB:-warden}
+      GROQ_API_KEY: ${GROQ_API_KEY:-your_groq_api_key_here}
+      HISTORY_LIMIT: ${HISTORY_LIMIT:-5}
     depends_on:
       db:
         condition: service_healthy
