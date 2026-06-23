@@ -26,10 +26,12 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
+          major_pattern='^[a-zA-Z]+(\([^)]*\))?!:'
+          feat_pattern='^feat(\([^)]*\))?:'
           bump="patch"
-          if [[ "$PR_TITLE" =~ ^[a-zA-Z]+(\([^)]*\))?!: ]] || [[ "$PR_TITLE" == *"BREAKING CHANGE"* ]]; then
+          if [[ "$PR_TITLE" =~ $major_pattern ]] || [[ "$PR_TITLE" == *"BREAKING CHANGE"* ]]; then
             bump="major"
-          elif [[ "$PR_TITLE" =~ ^feat(\([^)]*\))?: ]]; then
+          elif [[ "$PR_TITLE" =~ $feat_pattern ]]; then
             bump="minor"
           fi
           echo "bump=$bump" >> "$GITHUB_OUTPUT"
