@@ -18,16 +18,17 @@ services:
   warden:
     build: .
     ports:
-      - "9000:9000"
+      - "${PORT:-9000}:${PORT:-9000}"
     environment:
+      PORT: ${PORT:-9000}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-warden}:${POSTGRES_PASSWORD:-warden}@db:5432/${POSTGRES_DB:-warden}
       GROQ_API_KEY: ${GROQ_API_KEY:-your_groq_api_key_here}
-      HISTORY_LIMIT: ${HISTORY_LIMIT:-5}
+      HISTORY_LIMIT: ${HISTORY_LIMIT:-3}
     depends_on:
       db:
         condition: service_healthy
     command: >
-      sh -c "uv run alembic upgrade head && uv run granian --interface asgi --host 0.0.0.0 --port 9000 src.main:app"
+      sh -c "uv run alembic upgrade head && uv run granian --interface asgi --host 0.0.0.0 --port ${PORT:-9000} src.main:app"
     volumes:
       - ./src:/app/src
 

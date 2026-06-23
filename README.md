@@ -1,11 +1,6 @@
 # 🛡️ Warden
 
-Agente autónomo de detección y remediación de degradación de servicios para
-Plataformas Internas de Desarrollo (Internal Developer Platforms).
-
-Warden recibe señales de degradación de servicios mediante webhooks, analiza la
-situación utilizando un LLM y ejecuta una acción de remediación de forma autónoma o
-la escala a un humano cuando es necesario.
+Warden: Automatización inteligente para la resiliencia de software. Es un agente autónomo que protege tus Plataformas Internas de Desarrollo (IDPs). Al recibir alertas mediante webhooks, Warden usa IA (LLMs) para analizar el fallo y resolverlo de forma autónoma, derivando el problema a un humano únicamente si la situación lo requiere.
 
 ## 📋 Requisitos
 
@@ -17,7 +12,7 @@ la escala a un humano cuando es necesario.
 
 1. Clonar el repositorio:
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/leonardoalmeidac/warden.git
    cd warden
    ```
 
@@ -124,3 +119,48 @@ mocks/              orchestrator.py y notifications.py — ahora sí invocados p
 | `severity == critical`                               | `safe_to_auto = false` siempre  |
 | `confidence < 0.7`                                   | `safe_to_auto = false`          |
 | `env == prod` y `action` en `rollback`, `scale_up`    | `safe_to_auto = false`          |
+
+## 🔄 CI
+
+Dos workflows de GitHub Actions (`.github/workflows/`) cubren todo el ciclo desde un
+push hasta el release, sin pasos manuales más allá de la aprobación del PR:
+
+```mermaid
+flowchart TD
+    A["Push a una rama feature"] --> B["Job: test<br/>uv run pytest"]
+    A --> C["Job: security<br/>bandit · pip-audit · gitleaks"]
+    B --> D{"¿Ambos OK?"}
+    C --> D
+    D -- sí --> E["Job: open-pr<br/>gh pr create --fill"]
+    D -- no --> F["CI en rojo, no se abre PR"]
+    E --> G["PR abierto hacia main"]
+    G --> H["Job: dependency-review<br/>(solo en eventos pull_request)"]
+    G --> I["✋ Aprobación manual<br/>(branch protection)"]
+    I --> J["Merge a main"]
+    J --> K["tag-release.yml<br/>lee el título del PR"]
+    K --> L{"Conventional Commits"}
+    L -- "feat:" --> M["bump minor"]
+    L -- "fix: / otro" --> N["bump patch"]
+    L -- "tipo!: o BREAKING CHANGE" --> O["bump major"]
+    M --> P["git tag vX.Y.Z + GitHub Release"]
+    N --> P
+    O --> P
+```
+
+### `ci.yml` — se dispara en cada push y en cada PR hacia `main`
+
+| Job | Cuándo corre | Qué hace |
+| --- | --- | --- |
+| `test` | siempre | `uv run pytest -v` |
+| `security` | siempre | `bandit` (SAST sobre `src/`), `pip-audit` (vulnerabilidades en el lockfile), `gitleaks` (secretos en el historial de commits, vía `docker run ghcr.io/gitleaks/gitleaks`) |
+| `dependency-review` | solo `pull_request` | compara las dependencias del PR contra `main` (usa el Dependency graph de GitHub) |
+| `open-pr` | solo `push` a una rama que no sea `main`, y solo si `test`+`security` pasaron | abre automáticamente el PR hacia `main` con `gh pr create --fill` (no duplica si ya hay uno abierto) |
+
+### `tag-release.yml` — se dispara cuando un PR hacia `main` se cierra
+
+Solo actúa si el PR se mergeó (`merged == true`). Calcula el bump leyendo el
+**título del PR** en formato Conventional Commits (`feat:` → minor, cualquier otro
+prefijo → patch, `tipo!:` o `BREAKING CHANGE` → major), calcula el siguiente
+`vX.Y.Z` a partir del último tag existente, lo pushea y crea un GitHub Release con
+notas autogeneradas.
+
