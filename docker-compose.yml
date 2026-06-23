@@ -16,7 +16,9 @@ services:
       retries: 5
 
   warden:
+    container_name: warden
     build: .
+    image: warden:latest
     ports:
       - "${PORT:-9000}:${PORT:-9000}"
     environment:
