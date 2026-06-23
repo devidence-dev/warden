@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -15,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8
+        uses: astral-sh/setup-uv@v8.2.0
         with:
           enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
@@ -34,12 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8
+        uses: astral-sh/setup-uv@v8.2.0
         with:
           enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
@@ -57,11 +56,9 @@ jobs:
         run: uvx pip-audit -r requirements-audit.txt --no-deps
 
       - name: Secret scanning (gitleaks)
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Required only for private repositories owned by a GitHub organization.
-          # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" ghcr.io/gitleaks/gitleaks:latest \
+            detect --source="/repo" --no-banner --redact --exit-code 1
 
   dependency-review:
     name: Dependency review
@@ -69,7 +66,36 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
 
       - name: Dependency review
-        uses: actions/dependency-review-action@v5
+        uses: actions/dependency-review-action@v5.0.0
+
+  open-pr:
+    name: Open PR to main
+    needs: [test, security]
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main
+        run: git fetch origin main:refs/remotes/origin/main
+
+      - name: Create pull request to main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          existing=$(gh pr list --head "${{ github.ref_name }}" --base main --state open --json number -q '.[0].number' || true)
+          if [ -n "$existing" ]; then
+            echo "PR #$existing already open for ${{ github.ref_name }} -> main, nothing to do."
+            exit 0
+          fi
+          gh pr create --base main --head "${{ github.ref_name }}" --fill
