@@ -48,6 +48,7 @@ class ApprovalService:
 
         result = self._action_registry.execute(decision.action, event, decision, event_record.id)
         self._decision_repo.mark_executed(decision_record.id)
+        self._event_repo.mark_status(event_record.id, "processed")
         self._approval_repo.resolve(approval, "approved", feedback or DEFAULT_APPROVE_FEEDBACK)
 
         logger.info(
@@ -64,6 +65,8 @@ class ApprovalService:
 
     def reject(self, approval_id: str, feedback: str | None) -> ApprovalResult:
         approval = self._get_pending_approval(approval_id)
+        decision_record = self._decision_repo.get(approval.decision_id)
+        self._event_repo.mark_status(decision_record.event_id, "rejected")
         self._approval_repo.resolve(approval, "rejected", feedback or DEFAULT_REJECT_FEEDBACK)
 
         logger.info(json.dumps({"event": "approval_resolved", "approval_id": approval_id, "status": "rejected"}))
