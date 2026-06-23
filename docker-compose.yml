@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: warden
+      POSTGRES_PASSWORD: warden
+      POSTGRES_DB: warden
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warden"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  warden:
+    build: .
+    ports:
+      - "9000:9000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://warden:warden@db:5432/warden
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      HISTORY_LIMIT: 5
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "uv run alembic upgrade head && uv run granian --interface asgi --host 0.0.0.0 --port 9000 src.main:app"
+    volumes:
+      - ./src:/app/src
+
+volumes:
+  postgres_data:
