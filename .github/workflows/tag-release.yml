@@ -41,8 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           last_tag=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
-          last_tag="${last_tag:-v0.0.0}"
           version="${last_tag#v}"
+          version="${version:-0.0.0}"
           IFS='.' read -r major minor patch <<< "$version"
           case "${{ steps.bump.outputs.bump }}" in
             major) major=$((major + 1)); minor=0; patch=0 ;;
@@ -69,7 +69,8 @@ jobs:
           PREVIOUS_TAG: ${{ steps.next_tag.outputs.previous_tag }}
         run: |
           set -euo pipefail
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --generate-notes \
-            --notes-start-tag "$PREVIOUS_TAG"
+          if [ -n "$PREVIOUS_TAG" ]; then
+            gh release create "$TAG" --title "$TAG" --generate-notes --notes-start-tag "$PREVIOUS_TAG"
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          fi
