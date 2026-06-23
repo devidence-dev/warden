@@ -54,6 +54,10 @@ def test_approve_executes_action_and_records_free_text_feedback(client):
     assert response.json()["status"] == "approved"
     mock_rollback.assert_called_once_with("payments-api")
 
+    event_response = client.get(f"/events/{body['event_id']}")
+    assert event_response.json()["status"] == "processed"
+    assert event_response.json()["decision"]["safe_to_auto"] is False
+
 
 def test_approve_already_resolved_approval_returns_400(client):
     body = _create_pending_approval(client)
@@ -77,6 +81,9 @@ def test_reject_marks_as_rejected_without_executing_action(client):
 
     assert response.status_code == 200
     assert response.json()["status"] == "rejected"
+
+    event_response = client.get(f"/events/{body['event_id']}")
+    assert event_response.json()["status"] == "rejected"
 
 
 def test_approve_unknown_approval_returns_404(client):
