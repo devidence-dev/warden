@@ -1,0 +1,29 @@
+# Version control
+.git
+.github
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python virtual env and caches
+.venv
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache
+.ruff_cache
+*.egg-info
+
+# Tests (not needed at runtime)
+tests
+
+# Docs and project scratch files (not needed at runtime)
+README.md
+PLAN.md
+IMPLEMENTATION_NOTES.md
+
+# Misc
+*.db
+.DS_Store
