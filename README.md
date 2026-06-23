@@ -1,4 +1,4 @@
-# Warden
+# 🛡️ Warden
 
 Agente autónomo de detección y remediación de degradación de servicios para
 Plataformas Internas de Desarrollo (Internal Developer Platforms).
@@ -7,13 +7,13 @@ Warden recibe señales de degradación de servicios mediante webhooks, analiza l
 situación utilizando un LLM y ejecuta una acción de remediación de forma autónoma o
 la escala a un humano cuando es necesario.
 
-## Requisitos
+## 📋 Requisitos
 
-- Docker y Docker Compose (para correr el servicio completo)
-- [uv](https://docs.astral.sh/uv/) y Python 3.14 (para desarrollo local y tests)
-- API Key de Groq (https://console.groq.com)
+- 🐳 Docker y Docker Compose (para correr el servicio completo)
+- 🐍 [uv](https://docs.astral.sh/uv/) y Python 3.14 (para desarrollo local y tests)
+- 🔑 API Key de Groq (https://console.groq.com)
 
-## Configuración
+## ⚙️ Configuración
 
 1. Clonar el repositorio:
    ```bash
@@ -48,7 +48,7 @@ la escala a un humano cuando es necesario.
    memoria y un proveedor LLM falso (`FakeReasoningProvider`) inyectado vía
    `app.dependency_overrides`.
 
-## API
+## 🌐 API
 
 | Método | Ruta                   | Descripción                                       |
 | ------ | ---------------------- | -------------------------------------------------- |
@@ -60,7 +60,7 @@ la escala a un humano cuando es necesario.
 | POST   | /approvals/:id/approve | Aprobar y ejecutar una acción (body opcional `{"feedback": "..."}`) |
 | POST   | /approvals/:id/reject  | Rechazar una acción pendiente (body opcional `{"feedback": "..."}`) |
 
-## Arquitectura
+## 🏗️ Arquitectura
 
 ```
 src/
@@ -79,10 +79,10 @@ src/
 mocks/              orchestrator.py y notifications.py — ahora sí invocados por actions/
 ```
 
-### Decisiones de diseño
+### 🎯 Decisiones de diseño
 
 - **Repository** (`repositories/`) aísla SQLAlchemy del resto del dominio y elimina
-  la duplicación de queries que existía en routers y en el módulo de historial.
+  la duplicación de queries.
 - **Protocol-based DIP** (`llm/provider.py`, `actions/base.py`): el motor de
   razonamiento no depende de Groq concretamente, y la app no depende de un
   orquestador real. Soportar otro proveedor LLM solo requiere una clase nueva que
@@ -91,18 +91,15 @@ mocks/              orchestrator.py y notifications.py — ahora sí invocados p
   restricción de `safe_to_auto` es una clase `SafetyRule` independiente y testeable;
   agregar una restricción nueva no toca las demás.
 - **Strategy** (`actions/`): cada acción de remediación es un `ActionHandler`
-  intercambiable; `ActionRegistry` los despacha por `ActionType`. Los handlers ahora
-  sí invocan `mocks/orchestrator.py` y `mocks/notifications.py` (en el diseño
-  original estos mocks existían pero nunca se llamaban).
+  intercambiable; `ActionRegistry` los despacha por `ActionType`. Los handlers invocan `mocks/orchestrator.py` y `mocks/notifications.py`.
 - **Composition root manual** (`api/deps.py`): un solo lugar ensambla repos,
   provider, policy, registry y servicios concretos con sus dependencias. No se
-  introduce un framework de DI adicional — FastAPI `Depends` ya resuelve el grafo,
-  y agregar uno sería sobre-ingeniería para este alcance.
+  introduce un framework de DI adicional — FastAPI `Depends` ya resuelve el grafo.
 - `RemediationDecision` es inmutable (`frozen=True`); aplicar restricciones de
   seguridad devuelve una copia (`with_safe_to_auto`) en lugar de mutar el dict
   original.
 
-## Suposiciones
+## 🤔 Suposiciones
 
 - El campo `context` es opcional y extensible.
 - El único entorno considerado como producción es `prod`.
@@ -117,7 +114,7 @@ mocks/              orchestrator.py y notifications.py — ahora sí invocados p
   requieren infraestructura levantada y no aportan valor adicional para este
   alcance (el contrato de SQLAlchemy/Alembic es el mismo).
 
-### Restricciones de `safe_to_auto`
+### 🚦 Restricciones de `safe_to_auto`
 
 | Condición                                           | Efecto                         |
 | ---------------------------------------------------- | ------------------------------- |
