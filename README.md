@@ -43,23 +43,76 @@ Warden: Automatización inteligente para la resiliencia de software. Es un agent
    memoria y un proveedor LLM falso (`FakeReasoningProvider`) inyectado vía
    `app.dependency_overrides`.
 
-## 🌐 API
+### 📖 Documentación interactiva (Swagger / ReDoc)
 
-| Método | Ruta                   | Descripción                                       |
-| ------ | ---------------------- | -------------------------------------------------- |
-| GET    | /health                | Verificación del estado del servicio                |
-| POST   | /events                | Ingesta de una señal de degradación                 |
-| GET    | /events                | Listar eventos recibidos                            |
-| GET    | /events/:id            | Detalle de un evento junto con la decisión tomada   |
-| GET    | /approvals             | Solicitudes de aprobación pendientes                |
-| POST   | /approvals/:id/approve | Aprobar y ejecutar una acción (body opcional `{"feedback": "..."}`) |
-| POST   | /approvals/:id/reject  | Rechazar una acción pendiente (body opcional `{"feedback": "..."}`) |
+FastAPI expone la documentación automáticamente, sin configuración adicional. Con
+el servicio levantado:
+
+- **Swagger UI** (probar los endpoints desde el navegador): http://localhost:9000/docs
+- **ReDoc** (solo lectura, más legible): http://localhost:9000/redoc
+- **Schema OpenAPI crudo**: http://localhost:9000/openapi.json
+
+### 🧪 Ejemplos `curl` por endpoint
+
+#### `GET /health` — Verificación del estado del servicio
+```bash
+curl -s http://localhost:9000/health
+```
+
+#### `POST /events` — Ingesta de una señal de degradación
+```bash
+curl -s -X POST http://localhost:9000/events \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "payments-api",
+    "environment_id": "prod",
+    "severity": "high",
+    "signal": "P99 latency spiked to 4s after the 14:30 deploy",
+    "context": {"last_deploy": "v2.3.1", "cpu_usage": "85%", "error_rate": "12%"},
+    "timestamp": "2024-04-03T14:45:00Z"
+  }'
+```
+> 💡 Si `severity` es `critical`, o el entorno es `prod` y la acción recomendada es
+> `rollback`/`scale_up`, la respuesta siempre va a traer `safe_to_auto: false` y un
+> `approval_id` — sin importar qué tan segura diga estar el LLM. Para ver un caso
+> que se ejecute solo, probá con `environment_id: "dev"` y `severity: "low"`.
+
+#### `GET /events` — Listar eventos recibidos
+```bash
+curl -s http://localhost:9000/events
+```
+
+#### `GET /events/:id` — Detalle de un evento junto con la decisión tomada
+```bash
+curl -s http://localhost:9000/events/<event_id>
+```
+
+#### `GET /approvals` — Solicitudes de aprobación pendientes
+```bash
+curl -s http://localhost:9000/approvals
+```
+
+#### `POST /approvals/:id/approve` — Aprobar y ejecutar una acción pendiente
+```bash
+curl -s -X POST http://localhost:9000/approvals/<approval_id>/approve \
+  -H "Content-Type: application/json" \
+  -d '{"feedback": "Confirmado con el equipo, adelante"}'
+```
+El body es opcional; sin `feedback`, se guarda el texto por defecto "Human approved the action".
+
+#### `POST /approvals/:id/reject` — Rechazar una acción pendiente
+```bash
+curl -s -X POST http://localhost:9000/approvals/<approval_id>/reject \
+  -H "Content-Type: application/json" \
+  -d '{"feedback": "Muy riesgoso para este horario"}'
+```
+El body es opcional; sin `feedback`, se guarda el texto por defecto "Human rejected the action".
 
 ## 🏗️ Arquitectura
 
 ```
 src/
-  config.py        Settings único (pydantic-settings), sin os.getenv disperso
+  config.py         Settings único (pydantic-settings), sin os.getenv disperso
   main.py           App factory FastAPI, lifespan, /health, manejo global de errores
   domain/           Modelos puros (DegradationEvent, RemediationDecision, HistoryEntry, enums)
   db/               Engine/Session de SQLAlchemy + modelos ORM (*Record)
@@ -96,29 +149,6 @@ mocks/              orchestrator.py y notifications.py — ahora sí invocados p
 - `RemediationDecision` es inmutable (`frozen=True`); aplicar restricciones de
   seguridad devuelve una copia (`with_safe_to_auto`) en lugar de mutar el dict
   original.
-
-## 🤔 Suposiciones
-
-- El campo `context` es opcional y extensible.
-- El único entorno considerado como producción es `prod`.
-- El límite de historial es configurable mediante la variable de entorno
-  `HISTORY_LIMIT` (valor predeterminado: `3`).
-- El feedback humano en `approve`/`reject` es texto libre opcional. El `HistoryEntry`
-  que se envía al LLM incluye tanto el resultado de la aprobación (`approved` /
-  `rejected`) como ese texto libre, para que decisiones futuras sobre el mismo
-  proyecto puedan tener en cuenta por qué una acción anterior fue aprobada o
-  rechazada.
-- Las pruebas usan SQLite en memoria en vez de Postgres real: son más rápidas, no
-  requieren infraestructura levantada y no aportan valor adicional para este
-  alcance (el contrato de SQLAlchemy/Alembic es el mismo).
-
-### 🚦 Restricciones de `safe_to_auto`
-
-| Condición                                           | Efecto                         |
-| ---------------------------------------------------- | ------------------------------- |
-| `severity == critical`                               | `safe_to_auto = false` siempre  |
-| `confidence < 0.7`                                   | `safe_to_auto = false`          |
-| `env == prod` y `action` en `rollback`, `scale_up`    | `safe_to_auto = false`          |
 
 ## 🔄 CI
 

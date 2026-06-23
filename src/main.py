@@ -20,7 +20,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Warden Service", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Warden Service",
+    description=(
+        "Agente autónomo de detección y remediación de degradación de servicios. "
+        "Recibe eventos vía webhook, razona con un LLM y ejecuta o escala la acción de remediación."
+    ),
+    version="1.0.0",
+    lifespan=lifespan,
+)
 app.include_router(events_router)
 app.include_router(approvals_router)
 

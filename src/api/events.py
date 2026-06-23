@@ -10,7 +10,7 @@ from src.services.event_service import EventIngestionService
 router = APIRouter(prefix="/events", tags=["events"])
 
 
-@router.post("/", response_model=IngestResponse)
+@router.post("/", response_model=IngestResponse, summary="Ingesta de un evento de degradación")
 async def ingest_event(payload: DegradationEvent, service: EventIngestionService = Depends(get_event_service)):
     result = service.ingest(payload)
     return IngestResponse(
@@ -26,12 +26,12 @@ async def ingest_event(payload: DegradationEvent, service: EventIngestionService
     )
 
 
-@router.get("/", response_model=list[EventResponse])
+@router.get("/", response_model=list[EventResponse], summary="Listar eventos recibidos")
 async def list_events(repo: EventRepository = Depends(get_event_repository)):
     return repo.list()
 
 
-@router.get("/{event_id}", response_model=EventDetailResponse)
+@router.get("/{event_id}", response_model=EventDetailResponse, summary="Detalle de un evento y su decisión")
 async def get_event(
     event_id: str,
     event_repo: EventRepository = Depends(get_event_repository),
