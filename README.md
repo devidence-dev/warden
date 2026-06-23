@@ -1,11 +1,6 @@
 # 🛡️ Warden
 
-Agente autónomo de detección y remediación de degradación de servicios para
-Plataformas Internas de Desarrollo (Internal Developer Platforms).
-
-Warden recibe señales de degradación de servicios mediante webhooks, analiza la
-situación utilizando un LLM y ejecuta una acción de remediación de forma autónoma o
-la escala a un humano cuando es necesario.
+Warden: Automatización inteligente para la resiliencia de software. Es un agente autónomo que protege tus Plataformas Internas de Desarrollo (IDPs). Al recibir alertas mediante webhooks, Warden usa IA (LLMs) para analizar el fallo y resolverlo de forma autónoma, derivando el problema a un humano únicamente si la situación lo requiere.
 
 ## 📋 Requisitos
 
@@ -17,7 +12,7 @@ la escala a un humano cuando es necesario.
 
 1. Clonar el repositorio:
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/leonardoalmeidac/warden.git
    cd warden
    ```
 
@@ -125,7 +120,7 @@ mocks/              orchestrator.py y notifications.py — ahora sí invocados p
 | `confidence < 0.7`                                   | `safe_to_auto = false`          |
 | `env == prod` y `action` en `rollback`, `scale_up`    | `safe_to_auto = false`          |
 
-## 🔄 CI/CD
+## 🔄 CI
 
 Dos workflows de GitHub Actions (`.github/workflows/`) cubren todo el ciclo desde un
 push hasta el release, sin pasos manuales más allá de la aprobación del PR:
